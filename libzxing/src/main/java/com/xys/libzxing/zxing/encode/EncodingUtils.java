@@ -1,4 +1,4 @@
-package com.xys.libzxing.zxing.encoding;
+package com.xys.libzxing.zxing.encode;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -45,10 +45,10 @@ public class EncodingUtils {
             // 两个for循环是图片横列扫描的结果
             for (int y = 0; y < heightPix; y++) {
                 for (int x = 0; x < widthPix; x++) {
-                    if (bitMatrix.get(x, y)) {
-                        pixels[y * widthPix + x] = 0xff000000;
+                    if (bitMatrix.get(x, y)) {//是否为黑色
+                        pixels[y * widthPix + x] = 0xff000000;//黑色
                     } else {
-                        pixels[y * widthPix + x] = 0xffffffff;
+                        pixels[y * widthPix + x] = 0xffffffff;//白色
                     }
                 }
             }
@@ -58,7 +58,7 @@ public class EncodingUtils {
             if (logoBm != null) {
                 bitmap = addLogo(bitmap, logoBm);
             }
-            //必须使用compress方法将bitmap保存到文件中再进行读取。直接返回的bitmap是没有任何压缩的，内存消耗巨大！
+            //todo 必须使用compress方法将bitmap保存到文件中再进行读取。直接返回的bitmap是没有任何压缩的，内存消耗巨大！
             return bitmap;
         } catch (WriterException e) {
             e.printStackTrace();
@@ -91,6 +91,7 @@ public class EncodingUtils {
         float scaleFactor = srcWidth * 1.0f / 5 / logoWidth;
         Bitmap bitmap = Bitmap.createBitmap(srcWidth, srcHeight, Bitmap.Config.ARGB_8888);
         try {
+            //先后两次绘制Bitmap
             Canvas canvas = new Canvas(bitmap);
             canvas.drawBitmap(src, 0, 0, null);
             canvas.scale(scaleFactor, scaleFactor, srcWidth / 2, srcHeight / 2);

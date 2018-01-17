@@ -1,9 +1,14 @@
 package com.xys.zxinglib;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -15,7 +20,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.xys.libzxing.zxing.activity.CaptureActivity;
-import com.xys.libzxing.zxing.encoding.EncodingUtils;
+import com.xys.libzxing.zxing.encode.EncodingUtils;
+import com.xys.libzxing.zxing.utils.ScreenDimen;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -39,24 +45,26 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onClick(View v) {
-                //打开扫描界面扫描条形码或二维码
-                Intent openCameraIntent = new Intent(MainActivity.this, CaptureActivity.class);
-                startActivityForResult(openCameraIntent, 0);
+                //运行时权限
+                if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA}, 1);
+                } else {
+                    //打开扫描界面扫描条形码或二维码
+                    startActivityForResult(new Intent(MainActivity.this, CaptureActivity.class), 0x1);
+                }
             }
         });
 
         Button generateQRCodeButton = (Button) this.findViewById(R.id.btn_add_qrcode);
-        generateQRCodeButton.setOnClickListener(new OnClickListener() {
 
+        final int qrCodeSize = ScreenDimen.dip2px(MainActivity.this, 250);
+        generateQRCodeButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
                 String contentString = qrStrEditText.getText().toString();
                 if (!contentString.equals("")) {
-                    //根据字符串生成二维码图片并显示在界面上，第二个参数为图片的大小（350*350）
-                    Bitmap qrCodeBitmap = EncodingUtils.createQRCode(contentString, 350, 350,
-                            mCheckBox.isChecked() ?
-                                    BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher) :
-                                    null);
+                    //根据字符串生成二维码图片并显示在界面上，第二个参数为图片的大小（X*X）
+                    Bitmap qrCodeBitmap = EncodingUtils.createQRCode(contentString, qrCodeSize, qrCodeSize, mCheckBox.isChecked() ? BitmapFactory.decodeResource(getResources(), R.drawable.logo) : null);
                     qrImgImageView.setImageBitmap(qrCodeBitmap);
                 } else {
                     Toast.makeText(MainActivity.this, "Text can not be empty", Toast.LENGTH_SHORT).show();
@@ -72,6 +80,14 @@ public class MainActivity extends AppCompatActivity {
             Bundle bundle = data.getExtras();
             String scanResult = bundle.getString("result");
             resultTextView.setText(scanResult);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 0x1 && grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            startActivityForResult(new Intent(MainActivity.this, CaptureActivity.class), 0x1);
         }
     }
 }

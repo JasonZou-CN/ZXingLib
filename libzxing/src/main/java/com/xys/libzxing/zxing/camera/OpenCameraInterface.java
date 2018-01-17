@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 
-package com.xys.libzxing.zxing.camera.open;
+package com.xys.libzxing.zxing.camera;
 
 import android.hardware.Camera;
 import android.util.Log;
 
+/**
+ * 开启相机硬件接口 - 根据指定的相机ID
+ */
 public class OpenCameraInterface {
 
     private static final String TAG = OpenCameraInterface.class.getName();
@@ -37,23 +40,9 @@ public class OpenCameraInterface {
             Log.w(TAG, "No cameras!");
             return null;
         }
-
         boolean explicitRequest = cameraId >= 0;
 
-        if (!explicitRequest) {
-            // Select a camera if no explicit camera requested
-            int index = 0;
-            while (index < numCameras) {
-                Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
-                Camera.getCameraInfo(index, cameraInfo);
-                if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
-                    break;
-                }
-                index++;
-            }
-
-            cameraId = index;
-        }
+        cameraId = getProperCameraId(cameraId);
 
         Camera camera;
         if (cameraId < numCameras) {
@@ -63,13 +52,39 @@ public class OpenCameraInterface {
             if (explicitRequest) {
                 Log.w(TAG, "Requested camera does not exist: " + cameraId);
                 camera = null;
-            } else {
+            } else {//刚开始 小于0，给了个默认的后置摄像头
                 Log.i(TAG, "No camera facing back; returning camera #0");
                 camera = Camera.open(0);
             }
         }
 
         return camera;
+    }
+
+    /**
+     * 得到合适的相机编号 - 与Open处的编号保持一致,默认为后置摄像头
+     *
+     * @param cameraId
+     * @return
+     */
+    public static int getProperCameraId(int cameraId) {
+        boolean explicitRequest = cameraId >= 0;
+        if (!explicitRequest) {//小于0
+            int numCameras = Camera.getNumberOfCameras();
+            // Select a camera if no explicit camera requested
+            int index = 0;
+            // 优选后置摄像头
+            while (index < numCameras) {
+                Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
+                Camera.getCameraInfo(index, cameraInfo);
+                if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                    break;
+                }
+                index++;
+            }
+            return index;
+        }
+        return cameraId;
     }
 
     /**

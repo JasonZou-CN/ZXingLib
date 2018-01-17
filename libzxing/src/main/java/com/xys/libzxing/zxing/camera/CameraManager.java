@@ -24,8 +24,6 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
-import com.xys.libzxing.zxing.camera.open.OpenCameraInterface;
-
 import java.io.IOException;
 
 /**
@@ -74,7 +72,8 @@ public class CameraManager {
             if (requestedCameraId >= 0) {
                 theCamera = OpenCameraInterface.open(requestedCameraId);
             } else {
-                theCamera = OpenCameraInterface.open();
+                theCamera = OpenCameraInterface.open();//"任意"后置摄像头
+                requestedCameraId = OpenCameraInterface.getProperCameraId(requestedCameraId);
             }
 
             if (theCamera == null) {
@@ -83,6 +82,12 @@ public class CameraManager {
             camera = theCamera;
         }
         theCamera.setPreviewDisplay(holder);
+        theCamera.setPreviewCallback(new Camera.PreviewCallback() {
+            @Override
+            public void onPreviewFrame(byte[] data, Camera camera) {
+                Log.i(TAG, "onPreviewFrame: data="+data.toString());
+            }
+        });
 
         if (!initialized) {
             initialized = true;
@@ -94,7 +99,7 @@ public class CameraManager {
         // these,
         // temporarily
         try {
-            configManager.setDesiredCameraParameters(theCamera, false);
+            configManager.setDesiredCameraParameters(requestedCameraId,theCamera, false);
         } catch (RuntimeException re) {
             // Driver failed
             Log.w(TAG, "Camera rejected parameters. Setting only minimal safe-mode parameters");
@@ -105,23 +110,13 @@ public class CameraManager {
                 parameters.unflatten(parametersFlattened);
                 try {
                     theCamera.setParameters(parameters);
-                    configManager.setDesiredCameraParameters(theCamera, true);
+                    configManager.setDesiredCameraParameters(requestedCameraId,theCamera, true);
                 } catch (RuntimeException re2) {
                     // Well, darn. Give up
                     Log.w(TAG, "Camera rejected even safe-mode parameters! No configuration");
                 }
             }
         }
-
-    }
-
-    /**
-     * Gets the CameraManager singleton instance.
-     *
-     * @return A reference to the CameraManager singleton.
-     */
-    public static CameraManager get() {
-        return cameraManager;
     }
 
     public synchronized boolean isOpen() {

@@ -15,12 +15,12 @@
  */
 package com.xys.libzxing.zxing.camera;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Point;
 import android.hardware.Camera;
 import android.util.Log;
 import android.view.Display;
+import android.view.Surface;
 import android.view.WindowManager;
 
 import java.util.ArrayList;
@@ -30,13 +30,11 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * 邮箱: 1076559197@qq.com | tauchen1990@gmail.com
+ * 作者: 邹旭
  * <p/>
- * 作者: 陈涛
+ * 日期: 2018年1月16日
  * <p/>
- * 日期: 2014年8月20日
- * <p/>
- * 描述: 该类主要负责设置相机的参数信息，获取最佳的预览界面
+ * 描述: 该类主要负责设置相机的参数信息（画面方向...），获取最佳的预览界面
  */
 public final class CameraConfigurationManager {
 
@@ -54,6 +52,42 @@ public final class CameraConfigurationManager {
 
     public CameraConfigurationManager(Context context) {
         this.context = context;
+    }
+
+    /**
+     * 保证预览方向正确
+     *
+     * @param cameraId
+     * @param camera
+     */
+    public  void setCameraDisplayOrientation( int cameraId, Camera camera) {
+        android.hardware.Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
+        android.hardware.Camera.getCameraInfo(cameraId, info);
+        int rotation = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();
+
+        int degrees = 0;
+        switch (rotation) {
+            case Surface.ROTATION_0:
+                degrees = 0;
+                break;
+            case Surface.ROTATION_90:
+                degrees = 90;
+                break;
+            case Surface.ROTATION_180:
+                degrees = 180;
+                break;
+            case Surface.ROTATION_270:
+                degrees = 270;
+                break;
+        }
+        int result;
+        if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            result = (info.orientation + degrees) % 360;
+            result = (360 - result) % 360;  // compensate the mirror
+        } else {  // back-facing
+            result = (info.orientation - degrees + 360) % 360;
+        }
+        camera.setDisplayOrientation(result);
     }
 
     public void initFromCameraParameters(Camera camera) {
@@ -81,8 +115,6 @@ public final class CameraConfigurationManager {
         Log.i(TAG, "Camera resolution y: " + cameraResolution.y);
     }
 
-    @SuppressWarnings("deprecation")
-    @SuppressLint("NewApi")
     private Point getDisplaySize(final Display display) {
         final Point point = new Point();
         try {
@@ -94,7 +126,13 @@ public final class CameraConfigurationManager {
         return point;
     }
 
-    public void setDesiredCameraParameters(Camera camera, boolean safeMode) {
+    /**
+     * 设置相机相关属性
+     *
+     * @param camera
+     * @param safeMode
+     */
+    public void setDesiredCameraParameters(int reqCameraId,Camera camera, boolean safeMode) {
         Camera.Parameters parameters = camera.getParameters();
 
         if (parameters == null) {
@@ -113,17 +151,15 @@ public final class CameraConfigurationManager {
 
         Camera.Parameters afterParameters = camera.getParameters();
         Camera.Size afterSize = afterParameters.getPreviewSize();
-        if (afterSize != null && (cameraResolution.x != afterSize.width || cameraResolution.y != afterSize
-                .height)) {
-            Log.w(TAG, "Camera said it supported preview size " + cameraResolution.x + 'x' +
-                    cameraResolution.y + ", but after setting it, preview size is " + afterSize.width + 'x'
-                    + afterSize.height);
+        if (afterSize != null && (cameraResolution.x != afterSize.width || cameraResolution.y != afterSize.height)) {
+            Log.w(TAG, "Camera said it supported preview size " + cameraResolution.x + 'x' + cameraResolution.y + ", but after setting it, preview size is " + afterSize.width + 'x' + afterSize.height);
             cameraResolution.x = afterSize.width;
             cameraResolution.y = afterSize.height;
         }
 
         /** 设置相机预览为竖屏 */
-        camera.setDisplayOrientation(90);
+//        camera.setDisplayOrientation(90);
+        setCameraDisplayOrientation(reqCameraId,camera);
     }
 
     public Point getCameraResolution() {
@@ -169,8 +205,7 @@ public final class CameraConfigurationManager {
         if (Log.isLoggable(TAG, Log.INFO)) {
             StringBuilder previewSizesString = new StringBuilder();
             for (Camera.Size supportedPreviewSize : supportedPreviewSizes) {
-                previewSizesString.append(supportedPreviewSize.width).append('x').append
-                        (supportedPreviewSize.height).append(' ');
+                previewSizesString.append(supportedPreviewSize.width).append('x').append(supportedPreviewSize.height).append(' ');
             }
             Log.i(TAG, "Supported preview sizes: " + previewSizesString);
         }

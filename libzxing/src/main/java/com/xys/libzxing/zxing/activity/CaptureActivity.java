@@ -15,7 +15,6 @@
  */
 package com.xys.libzxing.zxing.activity;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -31,6 +30,7 @@ import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
 import com.google.zxing.Result;
@@ -40,9 +40,9 @@ import com.xys.libzxing.zxing.decode.DecodeThread;
 import com.xys.libzxing.zxing.utils.BeepManager;
 import com.xys.libzxing.zxing.utils.CaptureActivityHandler;
 import com.xys.libzxing.zxing.utils.InactivityTimer;
+import com.xys.libzxing.zxing.utils.ScreenDimen;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 
 /**
  * This activity opens the camera and does the actual scanning on a background
@@ -66,6 +66,7 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
     private RelativeLayout scanContainer;
     private RelativeLayout scanCropView;
     private ImageView scanLine;
+    private LinearLayout openFlashlight;
 
     private Rect mCropRect = null;
     private boolean isHasSurface = false;
@@ -81,7 +82,7 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
     @Override
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
-
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
         Window window = getWindow();
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_capture);
@@ -90,13 +91,12 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
         scanContainer = (RelativeLayout) findViewById(R.id.capture_container);
         scanCropView = (RelativeLayout) findViewById(R.id.capture_crop_view);
         scanLine = (ImageView) findViewById(R.id.capture_scan_line);
+        openFlashlight = (LinearLayout) findViewById(R.id.openFlashlight);
 
         inactivityTimer = new InactivityTimer(this);
         beepManager = new BeepManager(this);
 
-        TranslateAnimation animation = new TranslateAnimation(Animation.RELATIVE_TO_PARENT, 0.0f, Animation
-                .RELATIVE_TO_PARENT, 0.0f, Animation.RELATIVE_TO_PARENT, 0.0f, Animation.RELATIVE_TO_PARENT,
-                0.9f);
+        TranslateAnimation animation = new TranslateAnimation(Animation.RELATIVE_TO_PARENT, 0.0f, Animation.RELATIVE_TO_PARENT, 0.0f, Animation.RELATIVE_TO_PARENT, 0.0f, Animation.RELATIVE_TO_PARENT, 0.9f);
         animation.setDuration(4500);
         animation.setRepeatCount(-1);
         animation.setRepeatMode(Animation.RESTART);
@@ -267,7 +267,7 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
         scanCropView.getLocationInWindow(location);
 
         int cropLeft = location[0];
-        int cropTop = location[1] - getStatusBarHeight();
+        int cropTop = location[1] - ScreenDimen.getStatusBarHeight(this);
 
         int cropWidth = scanCropView.getWidth();
         int cropHeight = scanCropView.getHeight();
@@ -290,16 +290,5 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
         mCropRect = new Rect(x, y, width + x, height + y);
     }
 
-    private int getStatusBarHeight() {
-        try {
-            Class<?> c = Class.forName("com.android.internal.R$dimen");
-            Object obj = c.newInstance();
-            Field field = c.getField("status_bar_height");
-            int x = Integer.parseInt(field.get(obj).toString());
-            return getResources().getDimensionPixelSize(x);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0;
-    }
+
 }
