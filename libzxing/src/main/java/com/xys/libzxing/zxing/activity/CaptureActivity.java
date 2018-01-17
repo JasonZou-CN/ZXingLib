@@ -19,12 +19,14 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Rect;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.Animation;
@@ -32,6 +34,7 @@ import android.view.animation.TranslateAnimation;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 
 import com.google.zxing.Result;
 import com.xys.libzxing.R;
@@ -70,6 +73,8 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
 
     private Rect mCropRect = null;
     private boolean isHasSurface = false;
+    private TextView flashlightTxt;
+    private ImageView flashlightIco;
 
     public Handler getHandler() {
         return handler;
@@ -91,7 +96,33 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
         scanContainer = (RelativeLayout) findViewById(R.id.capture_container);
         scanCropView = (RelativeLayout) findViewById(R.id.capture_crop_view);
         scanLine = (ImageView) findViewById(R.id.capture_scan_line);
+
+        flashlightTxt = (TextView) findViewById(R.id.flashlightTxt);
+        flashlightIco = (ImageView) findViewById(R.id.flashlightIco);
         openFlashlight = (LinearLayout) findViewById(R.id.openFlashlight);
+        openFlashlight.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (v.getTag()==null){
+                    v.setTag(0);
+
+                    flashlightIco.setImageResource(R.drawable.flashlight);
+                    flashlightTxt.setText("轻触关闭");
+                    Camera.Parameters parameters = cameraManager.getCamera().getParameters();
+                    parameters.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
+                    cameraManager.getCamera().setParameters(parameters);
+                }else {
+                    v.setTag(null);
+
+                    flashlightIco.setImageResource(R.drawable.flashlight);
+                    flashlightTxt.setText("轻触照亮");
+                    Camera.Parameters parameters = cameraManager.getCamera().getParameters();
+                    parameters.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
+                    cameraManager.getCamera().setParameters(parameters);
+//                    cameraManager.getCamera().release();
+                }
+            }
+        });
 
         inactivityTimer = new InactivityTimer(this);
         beepManager = new BeepManager(this);
@@ -162,11 +193,24 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
             isHasSurface = true;
             initCamera(holder);
         }
+        cameraManager.getCamera().setPreviewCallback(new Camera.PreviewCallback() {
+            long lastTime = 0;
+
+            @Override
+            public void onPreviewFrame(byte[] data, Camera camera) {
+                if (System.currentTimeMillis() - lastTime >= 1000) {
+                    Log.d(TAG, "onPreviewFrame: data.length=" + data.length);
+                    Log.d(TAG, "onPreviewFrame: data=" + data);
+
+                }
+            }
+        });
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         isHasSurface = false;
+        cameraManager.getCamera().setPreviewCallback(null);
     }
 
     @Override
@@ -194,16 +238,17 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
         CaptureActivity.this.finish();
     }
 
-    private void initCamera(SurfaceHolder surfaceHolder) {
+    private Camera initCamera(SurfaceHolder surfaceHolder) {
+        Camera camera = null;
         if (surfaceHolder == null) {
             throw new IllegalStateException("No SurfaceHolder provided");
         }
         if (cameraManager.isOpen()) {
             Log.w(TAG, "initCamera() while already open -- late SurfaceView callback?");
-            return;
+            return cameraManager.getCamera();
         }
         try {
-            cameraManager.openDriver(surfaceHolder);
+            camera = cameraManager.openDriver(surfaceHolder);
             // Creating the handler starts the preview, which can also throw a
             // RuntimeException.
             if (handler == null) {
@@ -219,6 +264,8 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
             // java.?lang.?RuntimeException: Fail to connect to camera service
             Log.w(TAG, "Unexpected error initializing camera", e);
             displayFrameworkBugMessageAndExit();
+        } finally {
+            return camera;
         }
     }
 

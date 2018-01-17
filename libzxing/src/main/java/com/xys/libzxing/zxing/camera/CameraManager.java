@@ -36,10 +36,9 @@ import java.io.IOException;
 public class CameraManager {
 
     private static final String TAG = CameraManager.class.getSimpleName();
-
+    private static CameraManager cameraManager;
     private final Context context;
     private final CameraConfigurationManager configManager;
-    private static CameraManager cameraManager;
     /**
      * Preview frames are delivered here, which we pass on to the registered
      * handler. Make sure to clear the handler so it will only receive one
@@ -51,11 +50,14 @@ public class CameraManager {
     private boolean initialized;
     private boolean previewing;
     private int requestedCameraId = -1;
-
     public CameraManager(Context context) {
         this.context = context;
         this.configManager = new CameraConfigurationManager(context);
         previewCallback = new PreviewCallback(configManager);
+    }
+
+    public Camera getCamera() {
+        return camera;
     }
 
     /**
@@ -65,7 +67,7 @@ public class CameraManager {
      *               into.
      * @throws IOException Indicates the camera driver failed to open.
      */
-    public synchronized void openDriver(SurfaceHolder holder) throws IOException {
+    public synchronized Camera openDriver(SurfaceHolder holder) throws IOException {
         Camera theCamera = camera;
         if (theCamera == null) {
 
@@ -82,12 +84,6 @@ public class CameraManager {
             camera = theCamera;
         }
         theCamera.setPreviewDisplay(holder);
-        theCamera.setPreviewCallback(new Camera.PreviewCallback() {
-            @Override
-            public void onPreviewFrame(byte[] data, Camera camera) {
-                Log.i(TAG, "onPreviewFrame: data="+data.toString());
-            }
-        });
 
         if (!initialized) {
             initialized = true;
@@ -99,7 +95,7 @@ public class CameraManager {
         // these,
         // temporarily
         try {
-            configManager.setDesiredCameraParameters(requestedCameraId,theCamera, false);
+            configManager.setDesiredCameraParameters(requestedCameraId, theCamera, false);
         } catch (RuntimeException re) {
             // Driver failed
             Log.w(TAG, "Camera rejected parameters. Setting only minimal safe-mode parameters");
@@ -110,12 +106,14 @@ public class CameraManager {
                 parameters.unflatten(parametersFlattened);
                 try {
                     theCamera.setParameters(parameters);
-                    configManager.setDesiredCameraParameters(requestedCameraId,theCamera, true);
+                    configManager.setDesiredCameraParameters(requestedCameraId, theCamera, true);
                 } catch (RuntimeException re2) {
                     // Well, darn. Give up
                     Log.w(TAG, "Camera rejected even safe-mode parameters! No configuration");
                 }
             }
+        } finally {
+            return theCamera;
         }
     }
 

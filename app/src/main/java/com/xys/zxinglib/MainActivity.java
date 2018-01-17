@@ -10,6 +10,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -24,11 +25,13 @@ import com.xys.libzxing.zxing.encode.EncodingUtils;
 import com.xys.libzxing.zxing.utils.ScreenDimen;
 
 public class MainActivity extends AppCompatActivity {
+    private static final String TAG = MainActivity.class.getSimpleName();
 
     private TextView resultTextView;
     private EditText qrStrEditText;
     private ImageView qrImgImageView;
     private CheckBox mCheckBox;
+    private ImageView iv_copy;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -39,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
         qrStrEditText = (EditText) this.findViewById(R.id.et_qr_string);
         qrImgImageView = (ImageView) this.findViewById(R.id.iv_qr_image);
         mCheckBox = (CheckBox) findViewById(R.id.logo);
+        iv_copy = (ImageView) findViewById(R.id.iv_copy);
 
         Button scanBarCodeButton = (Button) this.findViewById(R.id.btn_scan_barcode);
         scanBarCodeButton.setOnClickListener(new OnClickListener() {
@@ -71,6 +75,49 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        iv_copy.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                /*qrImgImageView.setDrawingCacheEnabled(true);
+                Bitmap bitmap = qrImgImageView.getDrawingCache();
+                Log.d(TAG, "onClick: bitmap="+bitmap);
+                iv_copy.setImageBitmap(bitmap);*/
+                iv_copy.setImageBitmap(getViewBitmap(mCheckBox));
+            }
+        });
+    }
+
+    private Bitmap getViewBitmap(View v) {
+        v.clearFocus();
+        v.setPressed(false);
+
+        boolean willNotCache = v.willNotCacheDrawing();
+        v.setWillNotCacheDrawing(false);
+
+        // Reset the drawing cache background color to fully transparent
+        // for the duration of this operation
+        int color = v.getDrawingCacheBackgroundColor();
+        v.setDrawingCacheBackgroundColor(0);
+
+        if (color != 0) {
+            v.destroyDrawingCache();
+        }
+        v.buildDrawingCache();
+        Bitmap cacheBitmap = v.getDrawingCache();
+        if (cacheBitmap == null) {
+            Log.e("Folder", "failed getViewBitmap(" + v + ")", new RuntimeException());
+            return null;
+        }
+
+        Bitmap bitmap = Bitmap.createBitmap(cacheBitmap);
+
+        // Restore the view
+        v.destroyDrawingCache();
+        v.setWillNotCacheDrawing(willNotCache);
+        v.setDrawingCacheBackgroundColor(color);
+
+        return bitmap;
     }
 
     @Override
