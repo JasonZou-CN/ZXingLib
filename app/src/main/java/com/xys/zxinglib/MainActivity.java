@@ -79,10 +79,6 @@ public class MainActivity extends AppCompatActivity {
         iv_copy.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                /*qrImgImageView.setDrawingCacheEnabled(true);
-                Bitmap bitmap = qrImgImageView.getDrawingCache();
-                Log.d(TAG, "onClick: bitmap="+bitmap);
-                iv_copy.setImageBitmap(bitmap);*/
                 iv_copy.setImageBitmap(getViewBitmap(mCheckBox));
             }
         });

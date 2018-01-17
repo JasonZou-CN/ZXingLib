@@ -35,6 +35,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.zxing.Result;
 import com.xys.libzxing.R;
@@ -92,6 +93,8 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_capture);
 
+        TextView codeMine = (TextView) findViewById(R.id.codeMine);
+        ImageView back = (ImageView) findViewById(R.id.back);
         scanPreview = (SurfaceView) findViewById(R.id.capture_preview);
         scanContainer = (RelativeLayout) findViewById(R.id.capture_container);
         scanCropView = (RelativeLayout) findViewById(R.id.capture_crop_view);
@@ -100,6 +103,22 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
         flashlightTxt = (TextView) findViewById(R.id.flashlightTxt);
         flashlightIco = (ImageView) findViewById(R.id.flashlightIco);
         openFlashlight = (LinearLayout) findViewById(R.id.openFlashlight);
+
+        back.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
+
+        codeMine.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(CaptureActivity.this, "do something...", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        /*闪光灯*/
         openFlashlight.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -119,7 +138,6 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
                     Camera.Parameters parameters = cameraManager.getCamera().getParameters();
                     parameters.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
                     cameraManager.getCamera().setParameters(parameters);
-//                    cameraManager.getCamera().release();
                 }
             }
         });
@@ -127,6 +145,7 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
         inactivityTimer = new InactivityTimer(this);
         beepManager = new BeepManager(this);
 
+        /*扫描线动画*/
         TranslateAnimation animation = new TranslateAnimation(Animation.RELATIVE_TO_PARENT, 0.0f, Animation.RELATIVE_TO_PARENT, 0.0f, Animation.RELATIVE_TO_PARENT, 0.0f, Animation.RELATIVE_TO_PARENT, 0.9f);
         animation.setDuration(4500);
         animation.setRepeatCount(-1);
@@ -171,10 +190,11 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
         }
         inactivityTimer.onPause();
         beepManager.close();
-        cameraManager.closeDriver();
+        /*调用Camera.release()之前，先调用SurfaceHolder.removeCallback()*/
         if (!isHasSurface) {
             scanPreview.getHolder().removeCallback(this);
         }
+        cameraManager.closeDriver();
         super.onPause();
     }
 
@@ -199,8 +219,7 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
             @Override
             public void onPreviewFrame(byte[] data, Camera camera) {
                 if (System.currentTimeMillis() - lastTime >= 1000) {
-                    Log.d(TAG, "onPreviewFrame: data.length=" + data.length);
-                    Log.d(TAG, "onPreviewFrame: data=" + data);
+//                    Log.d(TAG, "onPreviewFrame: data.length=" + data.length);
 
                 }
             }
@@ -210,7 +229,6 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         isHasSurface = false;
-        cameraManager.getCamera().setPreviewCallback(null);
     }
 
     @Override
